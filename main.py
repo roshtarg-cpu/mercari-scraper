@@ -3,7 +3,7 @@ Mercari USA Marketplace Scraper
 Extracts product listings from mercari.com with Cloudflare bypass
 """
 from apify import Actor
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
 import json
 
 async def main():
@@ -30,11 +30,11 @@ async def main():
         items_scraped = 0
         
         try:
-            with sync_playwright() as playwright:
+            async with async_playwright() as playwright:
                 # Use playwright-with-fingerprints for Cloudflare bypass
-                from playwright_stealth import stealth_sync
+                from playwright_stealth import stealth_async
                 
-                browser = playwright.chromium.launch(
+                browser = await playwright.chromium.launch(
                     headless=True,
                     args=[
                         '--disable-blink-features=AutomationControlled',
@@ -43,18 +43,18 @@ async def main():
                     ]
                 )
                 
-                context = browser.new_context(
+                context = await browser.new_context(
                     viewport={'width': 1920, 'height': 1080},
                     user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     locale='en-US',
                     timezone_id='America/New_York'
                 )
                 
-                page = context.new_page()
+                page = await context.new_page()
                 
                 # Apply stealth
                 try:
-                    stealth_sync(page)
+                    await stealth_async(page)
                 except:
                     Actor.log.warning('playwright-stealth not available, proceeding without it')
                 
@@ -64,34 +64,34 @@ async def main():
                 max_retries = 3
                 for attempt in range(max_retries):
                     try:
-                        response = page.goto(search_url, wait_until='domcontentloaded', timeout=60000)
+                        response = await page.goto(search_url, wait_until='domcontentloaded', timeout=60000)
                         Actor.log.info(f'Page loaded, status: {response.status}')
                         break
                     except PlaywrightTimeout:
                         if attempt == max_retries - 1:
                             raise
                         Actor.log.warning(f'Timeout on attempt {attempt + 1}, retrying...')
-                        page.wait_for_timeout(2000)
+                        await page.wait_for_timeout(2000)
                 
                 # Wait for content
-                page.wait_for_timeout(3000)
+                await page.wait_for_timeout(3000)
                 
                 # Check for Cloudflare
-                page_title = page.title()
+                page_title = await page.title()
                 if 'just a moment' in page_title.lower() or 'cloudflare' in page_title.lower():
                     Actor.log.warning('Cloudflare challenge detected, waiting...')
-                    page.wait_for_timeout(10000)
-                    page_title = page.title()
+                    await page.wait_for_timeout(10000)
+                    page_title = await page.title()
                 
                 Actor.log.info(f'Page title: {page_title}')
                 
                 # Scroll to load more items
                 for i in range(3):
-                    page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-                    page.wait_for_timeout(1500)
+                    await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+                    await page.wait_for_timeout(1500)
                 
                 # Extract data using page.evaluate for better reliability
-                items = page.evaluate("""() => {
+                items = await page.evaluate("""() => {
                     const results = [];
                     
                     // Try multiple selectors
@@ -180,7 +180,7 @@ async def main():
                 
                 Actor.log.info(f'Successfully scraped {items_scraped} items')
                 
-                browser.close()
+                await browser.close()
         
         except Exception as e:
             Actor.log.exception(f'Error during scraping: {e}')
