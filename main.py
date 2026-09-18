@@ -58,11 +58,21 @@ async def main():
                 # Navigate to search page (this will trigger Cloudflare challenge)
                 print(f"Navigating to: {search_url}")
                 response = await page.goto(search_url, wait_until='domcontentloaded', timeout=30000)
-                print(f"Page loaded: {response.status}")
+                print(f"Initial page loaded: {response.status}")
                 
-                # Wait for Cloudflare challenge to complete + cookie dialog
-                await page.wait_for_timeout(5000)
-                print("Waited 5s for Cloudflare")
+                # Wait for Cloudflare challenge to complete - wait until title changes
+                print("Waiting for Cloudflare challenge...")
+                for attempt in range(10):
+                    await page.wait_for_timeout(2000)
+                    title = await page.title()
+                    print(f"  Attempt {attempt+1}: {title[:50]}")
+                    if "just a moment" not in title.lower() and "cloudflare" not in title.lower():
+                        print(f"✓ Cloudflare passed! Title: {title[:60]}")
+                        break
+                else:
+                    print("ERROR: Cloudflare challenge not completed after 20s")
+                    await browser.close()
+                    return
                 
                 # Handle cookie consent if present
                 try:
