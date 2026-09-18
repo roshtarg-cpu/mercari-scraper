@@ -3,7 +3,7 @@
   "name": "mercari-scraper",
   "title": "Mercari USA Marketplace Scraper",
   "description": "Fast and reliable scraper for Mercari.com USA marketplace. Extract product listings with prices, conditions, images, and shipping info. Perfect for price monitoring, market research, and competitive analysis.",
-  "version": "1.0.0",
+  "version": "1.0",
   "meta": {
     "templateId": "python-playwright"
   },
