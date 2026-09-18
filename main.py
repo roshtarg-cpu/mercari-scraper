@@ -81,62 +81,47 @@ async def main():
                     await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
                     await page.wait_for_timeout(1500)
                 
-                # Extract data using page.evaluate for better reliability
+                # Extract data - Mercari uses simple link structure
                 items = await page.evaluate("""() => {
                     const results = [];
                     
-                    // Try multiple selectors
-                    let itemElements = document.querySelectorAll('[data-testid="SearchResults"] > div');
+                    // Mercari product links are: a[href*="/us/item/m"]
+                    const itemLinks = document.querySelectorAll('a[href*="/us/item/m"]');
                     
-                    if (itemElements.length === 0) {
-                        // Fallback: look for product links
-                        itemElements = document.querySelectorAll('a[href*="/product/"]');
-                    }
-                    
-                    itemElements.forEach((el, idx) => {
-                        if (idx >= """ + str(max_results) + """) return;
-                        
+                    itemLinks.forEach((link, idx) => {
                         try {
-                            // Extract product URL
-                            let link = el.querySelector('a[href*="/product/"]');
-                            if (!link && el.tagName === 'A') link = el;
+                            const url = link.href;
+                            if (!url || url.includes('ref=search_results') === false) return;
                             
-                            const url = link ? link.href : null;
-                            if (!url) return;
+                            // Title and price are in the link's inner text
+                            const textContent = link.innerText.trim();
+                            const lines = textContent.split('\\n').filter(l => l.trim());
                             
-                            // Extract title
-                            const titleEl = el.querySelector('[data-testid="ItemName"]') || 
-                                           el.querySelector('span[class*="Name"]') ||
-                                           link.querySelector('span');
-                            const title = titleEl ? titleEl.innerText.trim() : '';
+                            // Usually: [Brand, Title, Price, OldPrice?]
+                            let title = '';
+                            let price = '';
                             
-                            // Extract price
-                            const priceEl = el.querySelector('[aria-label*="price"]') || 
-                                           el.querySelector('[data-testid="ItemPrice"]') ||
-                                           el.querySelector('[class*="price"]');
-                            let price = priceEl ? priceEl.innerText.trim() : '';
+                            for (const line of lines) {
+                                const trimmed = line.trim();
+                                if (trimmed.startsWith('$')) {
+                                    price = trimmed.split('$')[0] + '$' + trimmed.split('$')[1].split('$')[0];
+                                    break;
+                                } else if (trimmed && !title && trimmed !== 'SOLD') {
+                                    title = trimmed;
+                                }
+                            }
                             
                             // Extract image
-                            const imgEl = el.querySelector('img');
-                            const image = imgEl ? imgEl.src : '';
+                            const img = link.querySelector('img');
+                            const image = img ? img.src : '';
                             
-                            // Extract condition if available
-                            const conditionEl = el.querySelector('[data-testid="ItemCondition"]');
-                            const condition = conditionEl ? conditionEl.innerText.trim() : '';
-                            
-                            // Extract shipping info
-                            const shippingEl = el.querySelector('[aria-label*="shipping"]');
-                            const shipping = shippingEl ? shippingEl.innerText.trim() : '';
-                            
-                            if (title && url) {
+                            if (title && price && url) {
                                 results.push({
-                                    title,
-                                    price,
-                                    url,
-                                    image,
-                                    condition,
-                                    shipping,
-                                    position: idx + 1
+                                    title: title,
+                                    price: price,
+                                    url: url,
+                                    image: image,
+                                    position: results.length + 1
                                 });
                             }
                         } catch (err) {
