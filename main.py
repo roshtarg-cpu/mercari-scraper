@@ -65,7 +65,8 @@ async def main():
                 for attempt in range(10):
                     await page.wait_for_timeout(2000)
                     title = await page.title()
-                    print(f"  Attempt {attempt+1}: {title[:50]}")
+                    url = page.url
+                    print(f"  Attempt {attempt+1}: {title[:50]} | URL: {url[:60]}")
                     if "just a moment" not in title.lower() and "cloudflare" not in title.lower():
                         print(f"✓ Cloudflare passed! Title: {title[:60]}")
                         break
@@ -73,6 +74,15 @@ async def main():
                     print("ERROR: Cloudflare challenge not completed after 20s")
                     await browser.close()
                     return
+                
+                # Check if we're on the search page
+                current_url = page.url
+                print(f"Current URL: {current_url}")
+                if "/search/" not in current_url:
+                    print(f"WARNING: Not on search page, navigating again...")
+                    await page.goto(search_url, wait_until='domcontentloaded', timeout=15000)
+                    await page.wait_for_timeout(2000)
+                    print(f"Re-navigated to: {page.url}")
                 
                 # Handle cookie consent if present
                 try:
