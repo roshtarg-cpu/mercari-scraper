@@ -32,11 +32,26 @@ async def main():
             async with async_playwright() as playwright:
                 print("Playwright context created")
                 
-                # Launch browser
-                browser = await playwright.chromium.launch(
-                    headless=True,
-                    args=['--no-sandbox']
-                )
+                # Use Apify proxy for better fingerprinting
+                proxy_config = await Actor.create_proxy_configuration()
+                proxy_url = await proxy_config.new_url() if proxy_config else None
+                print(f"Using proxy: {proxy_url[:50] if proxy_url else 'None'}")
+                
+                # Launch browser with proxy
+                launch_options = {
+                    'headless': True,
+                    'args': ['--no-sandbox']
+                }
+                if proxy_url:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(proxy_url)
+                    launch_options['proxy'] = {
+                        'server': f"{parsed.scheme}://{parsed.hostname}:{parsed.port}",
+                        'username': parsed.username,
+                        'password': parsed.password
+                    }
+                
+                browser = await playwright.chromium.launch(**launch_options)
                 print("Browser launched")
                 
                 # Create context with realistic settings
