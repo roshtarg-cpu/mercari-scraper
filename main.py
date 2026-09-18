@@ -72,6 +72,24 @@ async def main():
                 page_title = await page.title()
                 print(f"Page title: {page_title}")
                 
+                # Take screenshot for debugging
+                screenshot_path = '/tmp/mercari.png'
+                await page.screenshot(path=screenshot_path)
+                print(f"Screenshot saved: {screenshot_path}")
+                
+                # Check what links exist
+                link_count = await page.evaluate('document.querySelectorAll("a[href*=\\"/us/item/m\\"]").length')
+                print(f"Links with '/us/item/m': {link_count}")
+                
+                # Check all links
+                all_links = await page.evaluate('document.querySelectorAll("a[href]").length')
+                print(f"Total links: {all_links}")
+                
+                # Get page text to see if there's content
+                body_text = await page.evaluate('document.body.innerText')
+                print(f"Body text length: {len(body_text)}")
+                print(f"Body preview: {body_text[:200]}")
+                
                 # Scroll
                 for i in range(2):
                     await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
