@@ -31,14 +31,19 @@ async def main():
         
         try:
             async with async_playwright() as playwright:
+                # Use proxy to bypass Cloudflare
+                proxy_config = None
+                proxy_url = Actor.get_env().get('APIFY_PROXY_URL')
+                if proxy_url:
+                    proxy_config = {'server': proxy_url}
+                
                 browser = await playwright.chromium.launch(
                     headless=True,
+                    proxy=proxy_config,
                     args=[
                         '--disable-blink-features=AutomationControlled',
                         '--disable-dev-shm-usage',
-                        '--no-sandbox',
-                        '--disable-web-security',
-                        '--disable-features=IsolateOrigins,site-per-process'
+                        '--no-sandbox'
                     ]
                 )
                 
