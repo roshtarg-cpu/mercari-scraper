@@ -91,6 +91,18 @@ async def main():
                 await page.wait_for_timeout(3000)
                 print("Waited for content after cookie handling")
                 
+                # Wait for search results to appear (React app might take time)
+                try:
+                    await page.wait_for_selector('a[href*="/us/item/m"]', timeout=10000)
+                    print("Search results appeared!")
+                except:
+                    print("Search results didn't appear in 10s")
+                    # Try scrolling to trigger lazy load
+                    for i in range(5):
+                        await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+                        await page.wait_for_timeout(1000)
+                    print("Scrolled to trigger lazy loading")
+                
                 # Check title
                 page_title = await page.title()
                 print(f"Page title: {page_title}")
