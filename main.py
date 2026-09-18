@@ -153,3 +153,9 @@ async def main():
             traceback.print_exc()
         
         print(f"=== ACTOR FINISHED: {items_scraped} items ===")
+
+# Run the actor
+if __name__ == '__main__':
+    import asyncio
+    asyncio.run(main())
+
