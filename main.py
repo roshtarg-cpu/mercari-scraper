@@ -25,84 +25,58 @@ async def main():
         items_scraped = 0
         
         try:
+            print("Starting Playwright...")
             async with async_playwright() as playwright:
-                # Use proxy to bypass Cloudflare
-                proxy_config = None
-                proxy_url = Actor.get_env().get('APIFY_PROXY_URL')
-                if proxy_url:
-                    proxy_config = {'server': proxy_url}
+                print("Playwright context created")
                 
+                # Simple browser launch without proxy for now
                 browser = await playwright.chromium.launch(
                     headless=True,
-                    proxy=proxy_config,
                     args=[
                         '--disable-blink-features=AutomationControlled',
                         '--disable-dev-shm-usage',
                         '--no-sandbox'
                     ]
                 )
+                print("Browser launched")
                 
                 context = await browser.new_context(
                     viewport={'width': 1920, 'height': 1080},
                     user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
                     locale='en-US',
-                    timezone_id='America/New_York',
-                    extra_http_headers={
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.9',
-                        'Accept-Encoding': 'gzip, deflate, br',
-                        'DNT': '1',
-                        'Connection': 'keep-alive',
-                        'Upgrade-Insecure-Requests': '1',
-                        'Sec-Fetch-Dest': 'document',
-                        'Sec-Fetch-Mode': 'navigate',
-                        'Sec-Fetch-Site': 'none',
-                        'Sec-Fetch-User': '?1',
-                        'Cache-Control': 'max-age=0'
-                    }
+                    timezone_id='America/New_York'
                 )
+                print("Context created")
                 
                 page = await context.new_page()
+                print("Page created")
                 
                 # Hide webdriver detection
                 await page.add_init_script("""
                     Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                    Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-                    Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
-                    window.chrome = {runtime: {}};
                 """)
+                print("Anti-detection applied")
                 
                 Actor.log.info(f'Navigating to: {search_url}')
+                print(f"Navigating to: {search_url}")
                 
-                # Navigate with retries
-                max_retries = 3
-                for attempt in range(max_retries):
-                    try:
-                        response = await page.goto(search_url, wait_until='domcontentloaded', timeout=60000)
-                        Actor.log.info(f'Page loaded, status: {response.status}')
-                        break
-                    except PlaywrightTimeout:
-                        if attempt == max_retries - 1:
-                            raise
-                        Actor.log.warning(f'Timeout on attempt {attempt + 1}, retrying...')
-                        await page.wait_for_timeout(2000)
+                # Navigate
+                response = await page.goto(search_url, wait_until='domcontentloaded', timeout=30000)
+                print(f"Page loaded: {response.status}")
                 
                 # Wait for content
-                await page.wait_for_timeout(3000)
+                await page.wait_for_timeout(5000)
+                print("Waited 5s for page load")
                 
-                # Check for Cloudflare
+                # Check title
                 page_title = await page.title()
-                if 'just a moment' in page_title.lower() or 'cloudflare' in page_title.lower():
-                    Actor.log.warning('Cloudflare challenge detected, waiting...')
-                    await page.wait_for_timeout(10000)
-                    page_title = await page.title()
+                print(f"Page title: {page_title}")
                 
-                Actor.log.info(f'Page title: {page_title}')
-                
-                # Scroll to load more items
-                for i in range(3):
+                # Scroll
+                for i in range(2):
                     await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-                    await page.wait_for_timeout(1500)
+                    await page.wait_for_timeout(1000)
+                print("Scrolled page")
                 
                 # Extract data - Mercari uses simple link structure
                 items = await page.evaluate("""() => {
@@ -156,6 +130,7 @@ async def main():
                 }""")
                 
                 Actor.log.info(f'Extracted {len(items)} items from page')
+                print(f"Extracted {len(items)} items")
                 
                 # Push data to dataset
                 for item in items:
@@ -165,23 +140,29 @@ async def main():
                     # Clean price
                     if item.get('price'):
                         price_str = item['price'].replace('$', '').replace(',', '').strip()
+                        # Handle price ranges like "$100$150"
+                        if price_str:
+                            price_str = price_str.split('$')[0]
                         try:
-                            item['priceNumeric'] = float(price_str)
+                            item['priceNumeric'] = float(price_str) if price_str else None
                         except:
                             item['priceNumeric'] = None
                     
                     # Add metadata
                     item['searchKeyword'] = search_keyword
-                    item['scrapedAt'] = Actor.apify_client.now().isoformat()
                     
                     await Actor.push_data(item)
                     items_scraped += 1
+                    print(f"Pushed item {items_scraped}: {item.get('title', 'N/A')[:30]}")
                 
                 Actor.log.info(f'Successfully scraped {items_scraped} items')
+                print(f"Total items scraped: {items_scraped}")
                 
                 await browser.close()
+                print("Browser closed")
         
         except Exception as e:
+            print(f"ERROR: {e}")
             Actor.log.exception(f'Error during scraping: {e}')
             raise
 
