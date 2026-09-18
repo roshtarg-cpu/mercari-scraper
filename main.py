@@ -67,17 +67,35 @@ async def main():
                     print("No cookie dialog (OK)")
                 
                 # Now intercept the API call or call it directly with the cookies
-                # The page has already made API calls - let's extract from network
-                print("Waiting for API response...")
+                print("Setting up API response listener...")
                 
-                # Method 1: Wait for the API response to be captured
-                async with page.expect_response(lambda response: '/v1/api' in response.url and response.status == 200, timeout=15000) as response_info:
-                    # Scroll to trigger API call if not already fired
-                    await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-                    await page.wait_for_timeout(2000)
+                # Collect API responses
+                api_responses = []
                 
-                api_response = await response_info.value
-                print(f"Captured API response: {api_response.url}")
+                async def handle_response(response):
+                    if '/v1/api' in response.url and response.status == 200:
+                        print(f"Captured API call: {response.url[:80]}")
+                        api_responses.append(response)
+                
+                page.on('response', handle_response)
+                
+                # Trigger page load/scroll to fire API calls
+                print("Scrolling to trigger API...")
+                await page.evaluate('window.scrollTo(0, 500)')
+                await page.wait_for_timeout(3000)
+                await page.evaluate('window.scrollTo(0, 1000)')
+                await page.wait_for_timeout(3000)
+                
+                print(f"Captured {len(api_responses)} API responses")
+                
+                if not api_responses:
+                    print("ERROR: No API responses captured")
+                    print("Page might still be loading or blocked")
+                    await browser.close()
+                    return
+                
+                api_response = api_responses[0]
+                print(f"Using API response: {api_response.url[:100]}")
                 
                 # Parse JSON
                 try:
