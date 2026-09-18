@@ -1,0 +1,55 @@
+{
+  "actorSpecification": 1,
+  "name": "mercari-scraper",
+  "title": "Mercari USA Marketplace Scraper",
+  "description": "Fast and reliable scraper for Mercari.com USA marketplace. Extract product listings with prices, conditions, images, and shipping info. Perfect for price monitoring, market research, and competitive analysis.",
+  "version": "1.0.0",
+  "meta": {
+    "templateId": "python-playwright"
+  },
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "title": "Mercari Products",
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": {
+            "fields": [
+              "title",
+              "price",
+              "priceNumeric",
+              "condition",
+              "shipping",
+              "url",
+              "image"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "title": {
+                "label": "Product Title",
+                "format": "text"
+              },
+              "price": {
+                "label": "Price",
+                "format": "text"
+              },
+              "condition": {
+                "label": "Condition",
+                "format": "text"
+              },
+              "url": {
+                "label": "URL",
+                "format": "link"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

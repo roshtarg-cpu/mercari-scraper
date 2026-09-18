@@ -1,0 +1,56 @@
+{
+  "title": "Mercari Scraper Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "searchKeyword": {
+      "title": "Search Keyword",
+      "type": "string",
+      "description": "Product search term (e.g., 'iphone', 'nike shoes', 'macbook')",
+      "default": "iphone",
+      "editor": "textfield"
+    },
+    "maxResults": {
+      "title": "Max Results",
+      "type": "integer",
+      "description": "Maximum number of products to scrape",
+      "default": 50,
+      "minimum": 1,
+      "maximum": 500,
+      "editor": "number"
+    },
+    "minPrice": {
+      "title": "Minimum Price ($)",
+      "type": "integer",
+      "description": "Filter products by minimum price (optional)",
+      "editor": "number"
+    },
+    "maxPrice": {
+      "title": "Maximum Price ($)",
+      "type": "integer",
+      "description": "Filter products by maximum price (optional)",
+      "editor": "number"
+    },
+    "condition": {
+      "title": "Item Condition",
+      "type": "string",
+      "description": "Filter by product condition",
+      "enum": [
+        "new",
+        "like_new",
+        "good",
+        "fair"
+      ],
+      "enumTitles": [
+        "New",
+        "Like New",
+        "Good",
+        "Fair"
+      ],
+      "editor": "select"
+    }
+  },
+  "required": [
+    "searchKeyword"
+  ]
+}
