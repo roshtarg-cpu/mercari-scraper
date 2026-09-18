@@ -31,9 +31,6 @@ async def main():
         
         try:
             async with async_playwright() as playwright:
-                # Use playwright-with-fingerprints for Cloudflare bypass
-                from playwright_stealth import stealth_async
-                
                 browser = await playwright.chromium.launch(
                     headless=True,
                     args=[
@@ -51,12 +48,6 @@ async def main():
                 )
                 
                 page = await context.new_page()
-                
-                # Apply stealth
-                try:
-                    await stealth_async(page)
-                except:
-                    Actor.log.warning('playwright-stealth not available, proceeding without it')
                 
                 Actor.log.info(f'Navigating to: {search_url}')
                 
