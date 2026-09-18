@@ -64,9 +64,32 @@ async def main():
                 response = await page.goto(search_url, wait_until='domcontentloaded', timeout=30000)
                 print(f"Page loaded: {response.status}")
                 
-                # Wait for content
-                await page.wait_for_timeout(5000)
-                print("Waited 5s for page load")
+                # Wait for page
+                await page.wait_for_timeout(2000)
+                
+                # Handle cookie consent - click "Got it" button
+                try:
+                    # Try multiple possible selectors for cookie button
+                    cookie_selectors = [
+                        'button:has-text("Got it")',
+                        'button:has-text("Accept")',
+                        '[aria-label*="cookie"]',
+                        'button[class*="consent"]'
+                    ]
+                    for selector in cookie_selectors:
+                        try:
+                            await page.click(selector, timeout=2000)
+                            print(f"Clicked cookie button: {selector}")
+                            await page.wait_for_timeout(1000)
+                            break
+                        except:
+                            continue
+                except Exception as e:
+                    print(f"No cookie dialog or couldn't click: {e}")
+                
+                # Wait for content to load after cookie acceptance
+                await page.wait_for_timeout(3000)
+                print("Waited for content after cookie handling")
                 
                 # Check title
                 page_title = await page.title()
