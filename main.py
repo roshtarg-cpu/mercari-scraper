@@ -1,10 +1,18 @@
+import sys
+print(f"Python {sys.version}", flush=True)
+print("Importing modules...", flush=True)
+
 from apify import Actor
+print("Apify imported", flush=True)
 from playwright.async_api import async_playwright
+print("Playwright imported", flush=True)
 import json
+print("JSON imported", flush=True)
 
 async def main():
+    print("Main function called", flush=True)
     async with Actor:
-        print("=== ACTOR STARTED ===")
+        print("=== ACTOR STARTED ===", flush=True)
         
         # Get input
         actor_input = await Actor.get_input() or {}
