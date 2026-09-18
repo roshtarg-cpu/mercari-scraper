@@ -49,6 +49,20 @@ async def main():
                 page = await context.new_page()
                 print("Page created")
                 
+                # Set up API response listener BEFORE navigation
+                print("Setting up response listener...")
+                api_responses = []
+                all_responses = []
+                
+                async def handle_response(response):
+                    all_responses.append(response.url)
+                    if '/v1/api' in response.url or '/api/' in response.url:
+                        print(f"★ API call: {response.url[:100]} | Status: {response.status}")
+                        if response.status == 200:
+                            api_responses.append(response)
+                
+                page.on('response', handle_response)
+                
                 # Hide webdriver
                 await page.add_init_script("""
                     Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
@@ -95,20 +109,17 @@ async def main():
                     print("No cookie dialog (OK)")
                 
                 # Now intercept the API call or call it directly with the cookies
-                print("Setting up API response listener...")
+                print("Checking captured responses...")
                 
-                # Collect API responses
-                api_responses = []
+                # Print sample of all URLs to debug
+                print(f"Total responses captured: {len(all_responses)}")
+                if len(all_responses) > 0:
+                    print("Sample URLs:")
+                    for url in all_responses[:10]:
+                        print(f"  - {url[:80]}")
                 
-                async def handle_response(response):
-                    if '/v1/api' in response.url and response.status == 200:
-                        print(f"Captured API call: {response.url[:80]}")
-                        api_responses.append(response)
-                
-                page.on('response', handle_response)
-                
-                # Trigger page load/scroll to fire API calls
-                print("Scrolling to trigger API...")
+                # Trigger page load/scroll to fire MORE API calls
+                print("Scrolling to trigger more API...")
                 await page.evaluate('window.scrollTo(0, 500)')
                 await page.wait_for_timeout(3000)
                 await page.evaluate('window.scrollTo(0, 1000)')
