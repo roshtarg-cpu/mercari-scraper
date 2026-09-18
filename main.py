@@ -8,24 +8,19 @@ import json
 
 async def main():
     async with Actor:
+        print("=== ACTOR STARTED ===")
         actor_input = await Actor.get_input() or {}
         max_results = actor_input.get('maxResults', 50)
         search_keyword = actor_input.get('searchKeyword', 'iphone')
-        min_price = actor_input.get('minPrice')
-        max_price = actor_input.get('maxPrice')
-        condition = actor_input.get('condition')  # new, like_new, good, fair
+        
+        print(f"Input: keyword={search_keyword}, maxResults={max_results}")
         
         Actor.log.info(f'Starting Mercari scraper for keyword: {search_keyword}')
         Actor.log.info(f'Max results: {max_results}')
         
         # Build search URL
         search_url = f'https://www.mercari.com/search/?keyword={search_keyword}'
-        if min_price:
-            search_url += f'&minPrice={min_price}'
-        if max_price:
-            search_url += f'&maxPrice={max_price}'
-        if condition:
-            search_url += f'&itemCondition={condition}'
+        print(f"URL: {search_url}")
         
         items_scraped = 0
         
